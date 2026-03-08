@@ -105,58 +105,49 @@ void CHudFlashlight::SetFlashlightState( bool flashlightOn )
 void CHudFlashlight::Paint()
 {
 #ifdef HL2_EPISODIC
-	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
-	if ( !pPlayer )
+	C_BaseHLPlayer* pPlayer = (C_BaseHLPlayer*)C_BasePlayer::GetLocalPlayer();
+	if (!pPlayer)
 		return;
 
 	// Only paint if we're using the new flashlight code
-	if ( pPlayer->m_HL2Local.m_flFlashBattery < 0.0f )
+	if (pPlayer->m_HL2Local.m_flFlashBattery < 0.0f)
 	{
-		SetPaintBackgroundEnabled( false );
+		SetPaintBackgroundEnabled(false);
 		return;
 	}
 
-	bool bIsOn = pPlayer->IsEffectActive( EF_DIMLIGHT );
-	SetFlashlightState( bIsOn );
+	bool bIsOn = pPlayer->IsEffectActive(EF_DIMLIGHT);
+	SetFlashlightState(bIsOn);
 
-	// get bar chunks
-	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
-	int enabledChunks = (int)((float)chunkCount * (pPlayer->m_HL2Local.m_flFlashBattery * 1.0f/100.0f) + 0.5f );
+	float flashBattery = pPlayer->m_HL2Local.m_flFlashBattery;
+	float flashBatteryFrac = flashBattery / 100.0f;
+
+	int barWidth = m_flBarWidth * flashBatteryFrac;
 
 	Color clrFlashlight;
-	clrFlashlight = ( enabledChunks < ( chunkCount / 4 ) ) ? gHUD.m_clrCaution : gHUD.m_clrNormal;
-	clrFlashlight[3] = ( bIsOn ) ? 255: 32;
+	clrFlashlight = flashBattery < 25.0f ? gHUD.m_clrCaution : gHUD.m_clrNormal;
+	clrFlashlight[3] = (bIsOn) ? 255 : 32;
 
 	// Pick the right character given our current state
-	wchar_t pState = ( bIsOn ) ? WCHAR_FLASHLIGHT_ON : WCHAR_FLASHLIGHT_OFF;
+	wchar_t pState = (bIsOn) ? WCHAR_FLASHLIGHT_ON : WCHAR_FLASHLIGHT_OFF;
 
-	surface()->DrawSetTextFont( m_hFont );
-	surface()->DrawSetTextColor( clrFlashlight );
-	surface()->DrawSetTextPos( m_IconX, m_IconY );
-	surface()->DrawUnicodeChar( pState );
+	surface()->DrawSetTextFont(m_hFont);
+	surface()->DrawSetTextColor(clrFlashlight);
+	surface()->DrawSetTextPos(m_IconX, m_IconY);
+	surface()->DrawUnicodeChar(pState);
 
 	// Don't draw the progress bar is we're fully charged
-	if ( bIsOn == false && chunkCount == enabledChunks )
+	if (bIsOn == false && flashBattery >= 100.0f)
 		return;
 
 	// draw the suit power bar
-	surface()->DrawSetColor( clrFlashlight );
+	surface()->DrawSetColor(clrFlashlight);
 	int xpos = m_flBarInsetX, ypos = m_flBarInsetY;
-	for (int i = 0; i < enabledChunks; i++)
-	{
-		surface()->DrawFilledRect( xpos, ypos, xpos + m_flBarChunkWidth, ypos + m_flBarHeight );
-		xpos += (m_flBarChunkWidth + m_flBarChunkGap);
-	}
-	
-	// Be even less transparent than we already are
-	clrFlashlight[3] = clrFlashlight[3] / 8;
 
-	// draw the exhausted portion of the bar.
-	surface()->DrawSetColor( clrFlashlight );
-	for (int i = enabledChunks; i < chunkCount; i++)
-	{
-		surface()->DrawFilledRect( xpos, ypos, xpos + m_flBarChunkWidth, ypos + m_flBarHeight );
-		xpos += (m_flBarChunkWidth + m_flBarChunkGap);
-	}
+	surface()->DrawSetColor(clrFlashlight[0], clrFlashlight[1], clrFlashlight[2], 40);
+	surface()->DrawFilledRect(xpos, ypos, xpos + m_flBarWidth, ypos + m_flBarHeight);
+
+	surface()->DrawSetColor(clrFlashlight);
+	surface()->DrawFilledRect(xpos, ypos, xpos + barWidth, ypos + m_flBarHeight);
 #endif // HL2_EPISODIC
 }

@@ -158,12 +158,12 @@ void CHudSuitPower::Paint()
 		return;
 
 	// get bar chunks
-	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
-	int enabledChunks = (int)((float)chunkCount * (m_flSuitPower * 1.0f/100.0f) + 0.5f );
+	float suitPowerFrac = m_flSuitPower / 100.0f;
+	float barWidth = m_flBarWidth * suitPowerFrac;
 
 	// see if we've changed power state
 	int lowPower = 0;
-	if (enabledChunks <= (chunkCount / 4))
+	if (m_flSuitPower <= 25.0f)
 	{
 		lowPower = 1;
 	}
@@ -183,21 +183,16 @@ void CHudSuitPower::Paint()
 		}
 	}
 
-	// draw the suit power bar
-	surface()->DrawSetColor( m_AuxPowerColor );
+
 	int xpos = m_flBarInsetX, ypos = m_flBarInsetY;
-	for (int i = 0; i < enabledChunks; i++)
-	{
-		surface()->DrawFilledRect( xpos, ypos, xpos + m_flBarChunkWidth, ypos + m_flBarHeight );
-		xpos += (m_flBarChunkWidth + m_flBarChunkGap);
-	}
-	// draw the exhausted portion of the bar.
-	surface()->DrawSetColor( Color( m_AuxPowerColor[0], m_AuxPowerColor[1], m_AuxPowerColor[2], m_iAuxPowerDisabledAlpha ) );
-	for (int i = enabledChunks; i < chunkCount; i++)
-	{
-		surface()->DrawFilledRect( xpos, ypos, xpos + m_flBarChunkWidth, ypos + m_flBarHeight );
-		xpos += (m_flBarChunkWidth + m_flBarChunkGap);
-	}
+
+	//draw normal bar
+	surface()->DrawSetColor(m_AuxPowerColor);
+	surface()->DrawFilledRect(xpos, ypos, xpos + barWidth, ypos + m_flBarHeight);
+
+	//draw bg 
+	surface()->DrawSetColor(Color(m_AuxPowerColor[0], m_AuxPowerColor[1], m_AuxPowerColor[2], m_iAuxPowerDisabledAlpha));
+	surface()->DrawFilledRect(xpos, ypos, xpos + m_flBarWidth, ypos + m_flBarHeight);
 
 	// draw our name
 	surface()->DrawSetTextFont(m_hTextFont);
