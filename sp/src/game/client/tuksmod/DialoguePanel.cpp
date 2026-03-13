@@ -43,7 +43,7 @@ using namespace vgui;
 #define DIALOGUE_MSG_LOCK     6
 #define DIALOGUE_MSG_DEFAULT_NPC 7
 
-static char g_szDefaultNPC[128] = ""; // ���������� ���������� ��� �������� default_npc �� �������
+static char g_szDefaultNPC[128] = ""; // глобальная переменная для хранения default_npc на клиенте
 
 void __MsgFunc_DialogueMsg(bf_read &msg)
 {
@@ -305,10 +305,10 @@ class CDialoguePanel : public vgui::Frame
 	float m_flHideTime;
 
 	// Animation phases:
-	//   ANIM_NONE         � idle, no animation
-	//   ANIM_SLIDE_IN     � panel slides up from off-screen to final position, fading in
-	//   ANIM_BUTTONS_FADE � buttons gradually become visible after typewriter finishes
-	//   ANIM_SLIDE_OUT    � panel slides down off-screen, fading out (on close)
+	//   ANIM_NONE         — idle, no animation
+	//   ANIM_SLIDE_IN     — panel slides up from off-screen to final position, fading in
+	//   ANIM_BUTTONS_FADE — buttons gradually become visible after typewriter finishes
+	//   ANIM_SLIDE_OUT    — panel slides down off-screen, fading out (on close)
 	enum AnimPhase { ANIM_NONE = 0, ANIM_SLIDE_IN, ANIM_BUTTONS_FADE, ANIM_SLIDE_OUT };
 	AnimPhase m_eAnimPhase;
 	float m_flAnimStartTime;
@@ -403,7 +403,7 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	SetScheme(scheme);
 	vgui::HFont hFont = vgui::scheme()->GetIScheme(scheme)->GetFont("DialogueFont");
 
-	// Character name label � white text
+	// Character name label — white text
 	m_pCharacterName = new Label(this, "DiagCharName", "DiagCharName");
 	m_pCharacterName->SetContentAlignment(Label::a_west);
 	m_pCharacterName->SetVisible(true);
@@ -413,11 +413,11 @@ CDialoguePanel::CDialoguePanel(vgui::VPANEL parent)
 	m_pCharacterName->SetMouseInputEnabled(false);
 	m_pCharacterName->SetFont(hFont);
 
-	// Separator line � drawn manually in PaintBackground for reliability
+	// Separator line — drawn manually in PaintBackground for reliability
 	m_pSeparator = new Panel(this, "DiagSeparator");
 	m_pSeparator->SetVisible(false);
 
-	// Dialogue rich text � background drawn manually in PaintBackground
+	// Dialogue rich text — background drawn manually in PaintBackground
 	m_pDialogueText = new RichText(this, "DiagText");
 	m_pDialogueText->SetText("");
 	m_pDialogueText->SetMaximumCharCount(4096);
@@ -500,11 +500,11 @@ void CDialoguePanel::ShowPanel(void)
 	// Block save/load during dialogue
 	engine->ClientCmd_Unrestricted("internal_dialogue_savelock 1");
 
-	// Hide buttons � they fade in after typewriter finishes
+	// Hide buttons — they fade in after typewriter finishes
 	for (int i = 0; i < 5; i++)
 		m_pOptions[i]->SetAlpha(0);
 
-	// Pause typewriter during slide-in � it will resume when slide-in finishes.
+	// Pause typewriter during slide-in — it will resume when slide-in finishes.
 	// ShowNode may have already started it before ShowPanel was called.
 	m_bTypewriterActive = false;
 
@@ -533,7 +533,7 @@ void CDialoguePanel::HidePanel(void)
 	m_szTypewriterBuffer[0] = '\0';
 	m_iTypewriterPos = 0;
 
-	// Cancel any pending deferred hide � we're handling it now
+	// Cancel any pending deferred hide — we're handling it now
 	m_bHidePending = false;
 
 	// Play close sound on CHAN_ITEM so it doesn't conflict with NPC voice or typewriter
@@ -664,7 +664,7 @@ void CDialoguePanel::SkipTypewriter(void)
 
 	m_bTypewriterActive = false;
 
-	// Text finished � fade buttons in
+	// Text finished — fade buttons in
 	BeginButtonsFade();
 }
 
@@ -892,7 +892,7 @@ void CDialoguePanel::LookAtTarget(const char* targetName)
 		}
 	}
 
-	// Always ask server � handles NPC look-at-player, and provides position for
+	// Always ask server — handles NPC look-at-player, and provides position for
 	// server-only entities (info_target, etc.) that don't exist on the client.
 	char szCmd[256];
 	Q_snprintf(szCmd, sizeof(szCmd), "internal_dialogue_focus %s", targetName);
@@ -943,7 +943,20 @@ void CDialoguePanel::ExecuteCommand(const char* cmdText)
 	if (!cmdText || !cmdText[0])
 		return;
 
-	engine->ClientCmd_Unrestricted(cmdText);
+	// Разделяем команды по ';' и выполняем каждую отдельно
+	char buf[512];
+	Q_strncpy(buf, cmdText, sizeof(buf));
+	char* ctx = NULL;
+	char* token = strtok_s(buf, ";", &ctx);
+	while (token)
+	{
+		// Пропускаем ведущие пробелы
+		while (*token == ' ')
+			token++;
+		if (*token)
+			engine->ClientCmd_Unrestricted(token);
+		token = strtok_s(NULL, ";", &ctx);
+	}
 }
 
 void CDialoguePanel::PlayNPCSound(const char* soundName)
@@ -978,7 +991,7 @@ void CDialoguePanel::PerformLayout()
 	int screenW, screenH;
 	vgui::surface()->GetScreenSize(screenW, screenH);
 
-	// Layout: dialog box on top, gap, then buttons below � all inside one VGUI panel.
+	// Layout: dialog box on top, gap, then buttons below — all inside one VGUI panel.
 	// PaintBackground only draws the black bg for the dialog portion.
 	int margin = (int)(screenW * 0.0125f);
 	int contentW = (int)(screenW * 0.50f) - margin * 2;
@@ -1026,7 +1039,7 @@ void CDialoguePanel::PerformLayout()
 		actualY = m_iAnimStartY + (int)((float)(screenH - m_iAnimStartY) * flSmooth);
 	}
 
-	// Only update if changed � prevents infinite invalidation loop
+	// Only update if changed — prevents infinite invalidation loop
 	int oldW, oldH, oldX, oldY;
 	GetSize(oldW, oldH);
 	GetPos(oldX, oldY);
@@ -1043,11 +1056,11 @@ void CDialoguePanel::PerformLayout()
 	m_iLayoutContentW = contentW;
 	m_iLayoutDialogH = dialogH;
 
-	// Character name label � full width
+	// Character name label — full width
 	m_pCharacterName->SetPos(margin, topPad);
 	m_pCharacterName->SetSize(contentW, labelH);
 
-	// Dialogue rich text � full width
+	// Dialogue rich text — full width
 	m_pDialogueText->SetPos(margin, textTop);
 	m_pDialogueText->SetSize(contentW, textH);
 
@@ -1087,7 +1100,7 @@ void CDialoguePanel::PaintBackground()
 	int w, h;
 	GetSize(w, h);
 
-	// Black background � only for the dialog box area (not the buttons below)
+	// Black background — only for the dialog box area (not the buttons below)
 	vgui::surface()->DrawSetColor(20, 20, 20, 230);
 	vgui::surface()->DrawFilledRect(0, 0, w, m_iLayoutDialogH);
 
@@ -1140,7 +1153,7 @@ void CDialoguePanel::OnTick()
 
 		if (flFraction >= 1.0f)
 		{
-			// Slide-in finished � snap to final position
+			// Slide-in finished — snap to final position
 			m_eAnimPhase = ANIM_NONE;
 			SetAlpha(255);
 			SetPos(curX, m_iFinalY);
@@ -1154,7 +1167,7 @@ void CDialoguePanel::OnTick()
 			}
 			else
 			{
-				// No typewriter text � fade buttons in immediately
+				// No typewriter text — fade buttons in immediately
 				BeginButtonsFade();
 			}
 		}
@@ -1182,7 +1195,7 @@ void CDialoguePanel::OnTick()
 				m_pOptions[i]->SetAlpha(255);
 		}
 
-		// Don't return � fall through so camera tracking continues during button fade
+		// Don't return — fall through so camera tracking continues during button fade
 	}
 
 	// =====================================================
@@ -1192,7 +1205,7 @@ void CDialoguePanel::OnTick()
 	{
 		float flElapsed = gpGlobals->realtime - m_flAnimStartTime;
 		float flFraction = clamp(flElapsed / DIALOGUE_ANIM_DURATION, 0.0f, 1.0f);
-		// Ease-in curve (accelerating) � reverse of slide-in's ease-out
+		// Ease-in curve (accelerating) — reverse of slide-in's ease-out
 		float flSmooth = flFraction * flFraction;
 
 		// Interpolate alpha: 255 -> 0
@@ -1249,7 +1262,7 @@ void CDialoguePanel::OnTick()
 			}
 			else if (m_bHasServerFocusPos)
 			{
-				// Entity not on client (info_target, etc.) � request updated position from server
+				// Entity not on client (info_target, etc.) — request updated position from server
 				vecTarget = m_vecServerFocusPos;
 				bHasTarget = true;
 
@@ -1363,7 +1376,7 @@ void CDialoguePanel::OnTick()
 				}
 			}
 
-			// Not a recognized tag � break out and print '<' as a character
+			// Not a recognized tag — break out and print '<' as a character
 			if (!bHandled)
 				break;
 
@@ -1405,7 +1418,7 @@ void CDialoguePanel::OnTick()
 				m_iTypewriterPos += j;
 				m_flTypewriterLastCharTime = flNow;
 
-				// Play typewriter sound � exactly one sound per character
+				// Play typewriter sound — exactly one sound per character
 				if (m_szTypewriterSound[0])
 					vgui::surface()->PlaySound(m_szTypewriterSound);
 
@@ -1435,7 +1448,7 @@ void CDialoguePanel::OnCommand(const char* pcCommand)
 		return;
 	}
 
-	// Don't call BaseClass::OnCommand � we handle all commands ourselves.
+	// Don't call BaseClass::OnCommand — we handle all commands ourselves.
 	// BaseClass would forward unrecognized commands to the parent, which is unnecessary.
 
 	// Split on semicolons to support composite commands (e.g. "cmd x;gotonode y;turnoff")
@@ -1466,7 +1479,12 @@ while (token)
 		}
 		else if (!Q_strnicmp(token, "cmd ", 4))
 		{
-			engine->ClientCmd_Unrestricted(token + 4);
+			ExecuteCommand(token + 4);
+		}
+		else if (*token)
+		{
+			// Любая другая команда (например, просто echo 1)
+			ExecuteCommand(token);
 		}
 
 		token = strtok_s(NULL, ";", &ctx);
@@ -1534,7 +1552,7 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 	if (m_eAnimPhase == ANIM_BUTTONS_FADE)
 		m_eAnimPhase = ANIM_NONE;
 
-	// Hide buttons for the new node � they'll fade in after text finishes
+	// Hide buttons for the new node — they'll fade in after text finishes
 	for (int i = 0; i < 5; i++)
 	{
 		m_pOptions[i]->SetVisible(false);
