@@ -1,0 +1,91 @@
+//=============================================================================
+// logic_dialogue - Triggers a client-side dialogue panel.
+//=============================================================================
+
+@PointClass base(Targetname, EnableDisable) iconsprite("editor/logic_dialogue.vmt") = logic_dialogue :
+	"Triggers a client-side dialogue panel."
+[
+	dialogue_file(string) : "Dialogue File" : "" : "Path to the dialogue file"
+	start_node(string) : "Start Node" : "node_start" : "The node name to begin the dialogue at."
+	default_npc(target_destination) : "Default NPC" : "" : "Targetname of the NPC tied to this dialogue. If this NPC dies while the dialogue is active, it closes automatically."
+
+	typewriter_enabled(choices) : "Typewriter Mode" : 1 : "Default typewriter mode. Individual nodes can override with 'typewriter' key." =
+	[
+		0 : "Disabled (instant text)"
+		1 : "Enabled (typewriter)"
+	]
+	typewriter_speed(float) : "Typewriter Speed" : "1.0" : "Default typewriter speed multiplier. Nodes can override with 'speed' key."
+	typewriter_sound(sound) : "Typewriter Sound" : "" : "Sound that plays while typewriter is printing. Stops when text completes or is skipped."
+	open_sound(sound) : "Open Sound" : "" : "Sound played when the dialogue panel opens."
+	close_sound(sound) : "Close Sound" : "" : "Sound played when the dialogue panel closes."
+
+	input StartDialogue(void) : "Opens the dialogue panel."
+	input StopDialogue(void) : "Closes the dialogue panel."
+	input UnlockChoice(string) : "Unlocks choices with this condition name. Choices using this string in their 'enabled' key become clickable."
+	input LockChoice(string) : "Locks choices with this condition name. Choices using this string in their 'enabled' key become disabled."
+
+	output OnDialogueStarted(void) : "Fired when the dialogue panel is opened."
+	output OnDialogueStopped(void) : "Fired when the dialogue panel is closed."
+]
+
+//=============================================================================
+// env_cinemabars - Shows black bars at the top and/or bottom of the screen.
+//=============================================================================
+
+@PointClass base(Targetname, EnableDisable) iconsprite("editor/hud_blackbars.vmt") = env_cinemabars :
+	"Shows black cinematic bars at the top and/or bottom of the player's screen."
+[
+	// Height applies to each bar (top and bottom) in pixels.
+	height(integer) : "Bar Height (px)" : 100 : "Height of each black bar in pixels."
+
+	// Toggle whether top/bottom bars are shown by this entity when activated.
+	top(choices) : "Top Bar" : 1 : "Whether the top bar is active when shown." =
+	[
+		0 : "Disabled"
+		1 : "Enabled"
+	]
+	bottom(choices) : "Bottom Bar" : 1 : "Whether the bottom bar is active when shown." =
+	[
+		0 : "Disabled"
+		1 : "Enabled"
+	]
+
+	// Color of the bars (RGB) using color255 type and alpha
+	color(color255) : "Bar Color" : "0 0 0" : "Color of the bars in RGB format."
+	alpha(integer) : "Alpha (0-255)" : 255 : "Alpha transparency of the bars. 0 = fully transparent, 255 = fully opaque."
+
+	// Duration to display the bars in seconds after the slide-in animation completes. 0 means stay until hidden.
+	duration(float) : "Duration (sec)" : "0" : "How long to display the bars after slide-in completes. 0 = until manually hidden."
+
+	// Animation durations (seconds)
+	anim_in(float) : "Slide-in Duration (sec)" : "0.35" : "Time for the bars to slide in (seconds)."
+	anim_out(float) : "Slide-out Duration (sec)" : "0.35" : "Time for the bars to slide out (seconds)."
+
+	// If true, bars are shown on map start (entity spawn).
+	startenabled(choices) : "Start Enabled" : 0 : "If set, the bars will be shown automatically when the map/entity spawns." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// If true, bars will be placed above HUD (cover HUD). Default is behind HUD.
+	coverhud(choices) : "Cover HUD" : 0 : "If set, bars will be drawn above the HUD; otherwise they are behind the HUD." =
+	[
+		0 : "No (behind HUD)"
+		1 : "Yes (cover HUD)"
+	]
+
+	// Inputs the mapper can use to control the bars via I/O.
+	input Show(void) : "Show the bars for all players."
+	input Hide(void) : "Hide the bars for all players."
+	input Toggle(void) : "Toggle the bars for all players."
+	input SetHeight(integer) : "Set the bar height (px) at runtime."
+	input SetTop(integer) : "Enable (1) or disable (0) the top bar at runtime."
+	input SetBottom(integer) : "Enable (1) or disable (0) the bottom bar at runtime."
+	input SetColor(string) : "Set bar color at runtime. Pass as R G B (e.g. '255 0 0')."
+	input SetAlpha(integer) : "Set bar alpha (0-255) at runtime."
+	input SetCover(integer) : "Enable (1) or disable (0) cover-HUD behavior at runtime."
+	input SetDuration(float) : "Set duration (seconds) to display bars after slide-in finishes. 0 = until hidden."
+	input SetAnimIn(float) : "Set slide-in duration (seconds) at runtime."
+	input SetAnimOut(float) : "Set slide-out duration (seconds) at runtime."
+]
