@@ -4,6 +4,7 @@
 #include <vgui_controls/Panel.h>
 #include "hud.h"
 #include "clientmode.h"
+#include "usermessages.h"
 
 using namespace vgui;
 
@@ -50,6 +51,9 @@ private:
 
 static CHudCinemaBars* g_pHudCinemaBarsTop = nullptr;
 static CHudCinemaBars* g_pHudCinemaBarsBottom = nullptr;
+
+// Forward decl for usermessage handler
+static void MsgFunc_CinemaBars(bf_read& msg);
 
 CHudCinemaBars::CHudCinemaBars(vgui::VPANEL parent, bool bTop, int iHeight, int r, int g, int b, int a, bool bCoverHud, float flDuration, float flAnimIn, float flAnimOut)
 	: Panel(nullptr, "HudCinemaBars"), m_iHeight(iHeight), m_bTop(bTop), m_r(r), m_g(g), m_b(b), m_a(a),
@@ -234,7 +238,7 @@ void CHudCinemaBars::StartSlideOut()
 }
 
 // Helper create/destroy functions for other code to use
-void CreateHudCinemaBars(vgui::VPANEL parent, int iHeight = 100, const char *mode = "both", int r = 0, int g = 0, int b = 0, int a = 255, bool bCoverHud = false, float flDuration = 0.0f, float flAnimIn = 0.35f, float flAnimOut = 0.35f)
+void CreateHudCinemaBars(vgui::VPANEL parent, int iHeight = 100, const char* mode = "both", int r = 0, int g = 0, int b = 0, int a = 255, bool bCoverHud = false, float flDuration = 0.0f, float flAnimIn = 0.35f, float flAnimOut = 0.35f)
 {
 	// If existing panels, update them instead of creating duplicates
 	if (!Q_stricmp(mode, "top"))
@@ -305,78 +309,53 @@ CHudCinemaBars* GetHudCinemaBarsBottom()
 	return g_pHudCinemaBarsBottom;
 }
 
-// Console command to toggle the cinematic bars for testing
-// Syntax (backwards compatible): show_cinemabars [1 height mode r g b a cover duration animIn animOut] | [0]
-static void ToggleHudCinemaBars_f(const CCommand &args)
+// Usermessage handler for server-controlled cinematic bars
+static void MsgFunc_CinemaBars(bf_read& msg)
 {
-	vgui::VPANEL parent = NULL;
-	if (g_pClientMode && g_pClientMode->GetViewport())
-		parent = g_pClientMode->GetViewport()->GetVPanel();
-
-	if (!parent)
+	int bShow = msg.ReadByte();
+	if (bShow)
 	{
-		DevMsg("ToggleHudCinemaBars: no viewport available to parent the panel.\n");
-		return;
-	}
+		int height = msg.ReadShort();
+		int modeFlags = msg.ReadByte();
+		int r = msg.ReadByte();
+		int g = msg.ReadByte();
+		int b = msg.ReadByte();
+		int alpha = msg.ReadByte();
+		int cover = msg.ReadByte();
+		float duration = msg.ReadFloat();
+		float animIn = msg.ReadFloat();
+		float animOut = msg.ReadFloat();
 
-	// If an explicit argument is provided, use it: 1=show, 0=hide, other = toggle
-	if (args.ArgC() >= 2)
-	{
-		const char* a0 = args[1];
-		if (!Q_stricmp(a0, "1") || !Q_stricmp(a0, "on") || !Q_stricmp(a0, "show"))
-		{
-			int height = 100;
-			const char* mode = "both";
-			int r = 0, g = 0, b = 0, alpha = 255;
-			bool cover = false;
-			float duration = 0.0f;
-			float animIn = 0.35f;
-			float animOut = 0.35f;
-			if (args.ArgC() >= 3)
-				height = atoi(args[2]);
-			if (args.ArgC() >= 4)
-				mode = args[3];
-			if (args.ArgC() >= 7)
-			{
-				r = atoi(args[4]);
-				g = atoi(args[5]);
-				b = atoi(args[6]);
-			}
-			if (args.ArgC() >= 8)
-				alpha = atoi(args[7]);
-			if (args.ArgC() >= 9)
-				cover = atoi(args[8]) != 0;
-			if (args.ArgC() >= 10)
-				duration = atof(args[9]);
-			if (args.ArgC() >= 11)
-				animIn = atof(args[10]);
-			if (args.ArgC() >= 12)
-				animOut = atof(args[11]);
+		const char* mode = "both";
+		if (modeFlags == 1) mode = "top";
+		else if (modeFlags == 2) mode = "bottom";
 
-			CreateHudCinemaBars(parent, height, mode, r, g, b, alpha, cover, duration, animIn, animOut);
-			DevMsg("Cinematic bars shown (mode=%s height=%d color=%d,%d,%d alpha=%d cover=%d duration=%f animIn=%f animOut=%f)\n", mode, height, r, g, b, alpha, cover, duration, animIn, animOut);
+		vgui::VPANEL parent = NULL;
+		if (g_pClientMode && g_pClientMode->GetViewport())
+			parent = g_pClientMode->GetViewport()->GetVPanel();
+		if (!parent)
 			return;
-		}
-		else if (!Q_stricmp(a0, "0") || !Q_stricmp(a0, "off") || !Q_stricmp(a0, "hide"))
-		{
-			if (GetHudCinemaBarsTop() || GetHudCinemaBarsBottom())
-				DestroyHudCinemaBars();
-			DevMsg("Cinematic bars hidden\n");
-			return;
-		}
-		// fall through to toggle for unrecognized arg
-	}
 
-	if (GetHudCinemaBarsTop() || GetHudCinemaBarsBottom())
-	{
-		DestroyHudCinemaBars();
-		DevMsg("Cinematic bars hidden\n");
+		CreateHudCinemaBars(parent, height, mode, r, g, b, alpha, cover != 0, duration, animIn, animOut);
 	}
 	else
 	{
-		CreateHudCinemaBars(parent);
-		DevMsg("Cinematic bars shown (top + bottom)\n");
+		// hide
+		if (GetHudCinemaBarsTop() || GetHudCinemaBarsBottom())
+			DestroyHudCinemaBars();
 	}
 }
 
-static ConCommand show_cinemabars("show_cinemabars", ToggleHudCinemaBars_f, "Toggle cinematic bars. Usage: show_cinemabars 1 [height] [mode: top/bottom/both] [r g b] [alpha] [cover(0/1)] [duration] [animIn] [animOut] or show_cinemabars 0 to hide", FCVAR_CLIENTDLL);
+// Hook message at static init time
+struct CCinemaBarsMsgRegistrar
+{
+	CCinemaBarsMsgRegistrar()
+	{
+		if (usermessages)
+		{
+			usermessages->HookMessage("CinemaBars", MsgFunc_CinemaBars);
+		}
+	}
+};
+
+static CCinemaBarsMsgRegistrar g_CinemaBarsMsgRegistrar;

@@ -54,6 +54,7 @@ void RegisterUserMessages( void )
 
 	// Dialogue system
 	usermessages->Register( "DialogueMsg", -1 );	// variable size: byte type + strings
+	usermessages->Register( "CinemaBars", -1 );
 
 #ifndef _X360
 	// NVNT register haptic user messages
