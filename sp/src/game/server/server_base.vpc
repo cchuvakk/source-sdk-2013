@@ -678,6 +678,12 @@ $Project
 		$File	"$SRCDIR\public\haptics\haptic_msgs.cpp"
 		$File	"$SRCDIR\public\haptics\haptic_utils.cpp"	[$WIN32]
 
+		$Folder	"tuksmod"
+		{
+			$File	"tuksmod\logic_dialogue.cpp"
+			$File	"tuksmod\env_cinemabars.cpp"
+		}
+
 		// Not using precompiled header cbase.h
 
 		$File	"$SRCDIR\public\bone_setup.cpp"					\

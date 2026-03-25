@@ -513,6 +513,13 @@ $Project
 		$File	"$SRCDIR\public\haptics\haptic_msgs.cpp"	[!$X360]
 		$File	"$SRCDIR\public\haptics\haptic_utils.cpp"	[$WIN32&&!$X360]
 
+		$Folder	"tuksmod"
+		{
+			$File	"tuksmod\DialoguePanel.cpp"
+			$File	"tuksmod\IDialoguePanel.h"
+			$File	"tuksmod\hud_cinemabars.cpp"
+		}
+
 		$Folder	"Sixense"
 		{
 			$File	"sixense\in_sixense.cpp"

@@ -16,6 +16,7 @@
 #include "utlvector.h"
 #include "GameEventListener.h"
 
+
 #define DIALOGUE_DEFAULT_FOV 75    // Default player FOV
 #define DIALOGUE_ZOOM_RATE 0.3f    // How fast to zoom in/out (seconds)
 #define DIALOGUE_HIDE_DELAY 0.15f  // Delay before hiding panel (lets button sounds play)
@@ -674,10 +675,18 @@ void CDialoguePanel::SkipTypewriter(void)
 			if (consumed > 0) { m_iTypewriterPos += consumed; continue; }
 		}
 
+		// Handle \n newline escape (literal backslash + 'n' in text)
+		if (m_szTypewriterBuffer[m_iTypewriterPos] == '\\' && m_szTypewriterBuffer[m_iTypewriterPos + 1] == 'n')
+		{
+			m_pDialogueText->InsertString("\n");
+			m_iTypewriterPos += 2;
+			continue;
+		}
+
 		// Collect a run of plain text until the next '<' or end
 		const char* start = &m_szTypewriterBuffer[m_iTypewriterPos];
 		const char* end = start + 1;
-		while (*end && *end != '<')
+		while (*end && *end != '<' && !(*end == '\\' && *(end + 1) == 'n'))
 			end++;
 
 		int len = end - start;
@@ -1491,8 +1500,21 @@ void CDialoguePanel::OnTick()
 
 		if (flNow - m_flTypewriterLastCharTime >= flCharInterval)
 		{
+			// Handle \n newline escape (literal backslash + 'n' in text)
+			if (m_szTypewriterBuffer[m_iTypewriterPos] == '\\' && m_szTypewriterBuffer[m_iTypewriterPos + 1] == 'n')
+			{
+				m_pDialogueText->InsertString("\n");
+				m_iTypewriterPos += 2;
+				m_flTypewriterLastCharTime = flNow;
+
+				if (m_szTypewriterBuffer[m_iTypewriterPos] == '\0')
+				{
+					m_bTypewriterActive = false;
+					OnTextComplete();
+				}
+			}
 			// Print exactly one character
-			if (m_szTypewriterBuffer[m_iTypewriterPos] != '\0')
+			else if (m_szTypewriterBuffer[m_iTypewriterPos] != '\0')
 			{
 				// Figure out how many bytes this UTF-8 character occupies
 				unsigned char ch = (unsigned char)m_szTypewriterBuffer[m_iTypewriterPos];
@@ -1802,9 +1824,17 @@ void CDialoguePanel::ShowNode(const char* nodeName)
 					if (consumed > 0) { p += consumed; continue; }
 				}
 
+				// Handle \n newline escape (literal backslash + 'n' in text)
+				if (*p == '\\' && *(p + 1) == 'n')
+				{
+					m_pDialogueText->InsertString("\n");
+					p += 2;
+					continue;
+				}
+
 				const char* start = p;
 				p++;
-				while (*p && *p != '<')
+				while (*p && *p != '<' && !(*p == '\\' && *(p + 1) == 'n'))
 					++p;
 
 				if (p > start)
